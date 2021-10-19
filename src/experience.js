@@ -29,7 +29,13 @@ export async function getCardServerConfiguration({ jwt, token,  url, }) {
         const { body: config } = response;
 
         if (process.env.DEBUG === 'true') {
-            console.debug('getCardServerConfiguration configuration:', config);
+            const logConfig = {...config};
+            for (const key in logConfig) {
+                if (key.toLocaleLowerCase().endsWith('key')) {
+                    logConfig[key] = '*****';
+                }
+            }
+            console.debug('getCardServerConfiguration configuration:', logConfig);
         }
         return {config};
     } else {
