@@ -1,6 +1,9 @@
 import { StatusCodes } from 'http-status-codes';
 import { authorize } from './jwt.js';
 
+import { getLogger } from './log.js';
+const logger = getLogger();
+
 export function jwtAuthorize({options}) {
     return function (request, response, next) {
         const { headers: { authorization: lowerAuthorization, Authorization: upperAuthorization } = {} } = request;
@@ -12,7 +15,7 @@ export function jwtAuthorize({options}) {
 
         if (bearer !== 'Bearer' || !authorizationToken) {
             const message = 'missing Authorization Bearer token';
-            console.error(message);
+            logger.error(message);
             response.status(StatusCodes.FORBIDDEN).send(JSON.stringify({ message }));
             next(message);
         }
@@ -24,7 +27,7 @@ export function jwtAuthorize({options}) {
             next();
         } catch (error) {
             const message = `Authorization token failed: ${error.message}`;
-            console.error(message);
+            logger.error(message);
             response.set('Content-Type', 'application/json')
             response.status(StatusCodes.FORBIDDEN).send(JSON.stringify({error: message}));
             next(error);
