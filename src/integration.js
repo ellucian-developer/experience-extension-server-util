@@ -1,6 +1,9 @@
 import got from 'got';
 import { StatusCodes } from 'http-status-codes';
 
+import { getLogger } from './log.js';
+const logger = getLogger();
+
 const baseOptions = {
     headers: {
         Accept: 'application/json',
@@ -12,12 +15,23 @@ function integrationUrl(options={}) {
     return options.ethosIntegrationUrl || process.env.ETHOS_INTEGRATION_URL;
 }
 
-function buildUrl(path, options) {
-    return `${integrationUrl(options)}/${path}`;
-}
+function buildUrl({base = 'api', id, options, resource}) {
+    let url;
+    switch(base) {
+        case 'admin':
+        case 'api':
+            url = `${integrationUrl(options)}/${base}/${resource}${id ? '/' + id : ''}`;
+            url = `${integrationUrl(options)}/${base}/${resource}${id ? '/' + id : ''}`;
+            break;
+        case 'auth':
+        case 'graphql':
+            url = `${integrationUrl(options)}/${base}`;
+            break;
+        default:
+            throw new Error(`Unknown base to buildUrl: ${base}`);
+    }
 
-function buildResourceUrl({id, options, resource}) {
-    return `${integrationUrl(options)}/api/${resource}${id ? '/' + id : ''}`;
+    return url
 }
 
 function createNewOptions() {
@@ -40,9 +54,7 @@ export async function getToken({apiKey, context={}, options, token}) {
     }
     const cachedToken = context.tokensByApiKey[apiKey];
     if (cachedToken && cachedToken.expires - (30 * 1000) > now) {
-        if (process.env.DEBUG === 'true') {
-            console.log('using cached token');
-        }
+        logger.debug('using cached token');
         return { context, token: cachedToken.token };
     }
 
@@ -53,11 +65,9 @@ export async function getToken({apiKey, context={}, options, token}) {
     const requestOptions = createNewOptions();
     addAuthorization(apiKey, requestOptions);
 
-    const url = buildUrl('auth', options);
+    const url = buildUrl({base: 'auth', options});
 
-    if (process.env.DEBUG === 'true') {
-        console.log('requesting a new token');
-    }
+    logger.debug('requesting a new token');
     const response = await got.post(url, requestOptions);
     if (response.statusCode === StatusCodes.OK) {
         const token = response.body;
@@ -74,7 +84,7 @@ export async function getToken({apiKey, context={}, options, token}) {
     throw new Error(`Integration Auth failed. response status: ${response.statusCode}`);
 }
 
-export async function get({apiKey, context = {}, id, resource, searchParams = {}, token, options}) {
+export async function get({apiKey, base = 'api', context = {}, id, resource, searchParams = {}, token, options}) {
     if (!resource) {
         throw  new Error('get: missing resource name');
     }
@@ -91,17 +101,28 @@ export async function get({apiKey, context = {}, id, resource, searchParams = {}
         addAuthorization(tokenToUse, requestOptions);
         requestOptions.searchParams = searchParams;
 
-        const url = buildResourceUrl({id, options, resource});
+        const url = buildUrl({base, id, options, resource});
         context.ethosGetCount = context.ethosGetCount ? context.ethosGetCount + 1 : 1;
-        const response = await got.get(url, requestOptions);
-        if (response.statusCode === StatusCodes.OK) {
+        try {
+            logger.debug('url', url);
+            logger.debug('requestOptions', requestOptions);
+            const response = await got.get(url, requestOptions);
+            if (response.statusCode === StatusCodes.OK) {
+                return {
+                    context,
+                    data: JSON.parse(response.body)
+                }
+            }
+
+            logger.error(`Integration get failed. response status: ${response.statusCode}`);
+            throw new Error(`Integration get failed. response status: ${response.statusCode}`);
+        } catch (error) {
+            logger.error('ethos get failed:', error);
             return {
                 context,
-                data: JSON.parse(response.body)
+                error
             }
         }
-
-        throw new Error(`Integration get failed. response status: ${response.statusCode}`);
     } else {
         throw new Error('get failed to get a token');
     }
@@ -118,7 +139,7 @@ export async function graphql({apiKey, context = {}, options, query, token, vari
             variables
         };
 
-        const url = buildUrl('graphql', options);
+        const url = buildUrl({base: 'graphql', options});
         context.ethosGraphQLCount = context.ethosGraphQLCount ? context.ethosGraphQLCount + 1 : 1;
         const response = await got.post(url, requestOptions);
         if (response.statusCode === StatusCodes.OK) {

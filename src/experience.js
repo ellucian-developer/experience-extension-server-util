@@ -1,6 +1,9 @@
 import got from 'got';
 import { StatusCodes } from 'http-status-codes';
 
+import { getLogger } from './log.js';
+const logger = getLogger();
+
 const baseOptions = {
     responseType: 'json',
     throwHttpErrors: false,
@@ -20,22 +23,20 @@ export async function getCardServerConfiguration({ jwt, token,  url, }) {
     const options = { ...baseOptions };
     options.headers.Authorization = `Bearer ${token}`;
 
-    if (process.env.DEBUG === 'true') {
-        console.debug('getCardServerConfiguration url:', configUrl);
-    }
+    logger.debug('getCardServerConfiguration url:', configUrl);
 
     const response = await got.get(configUrl, options);
     if (response.statusCode === StatusCodes.OK) {
         const { body: config } = response;
 
-        if (process.env.DEBUG === 'true') {
+        if (logger.getLevel() <= logger.levels.DEBUG) {
             const logConfig = {...config};
             for (const key in logConfig) {
                 if (key.toLocaleLowerCase().endsWith('key')) {
                     logConfig[key] = '*****';
                 }
             }
-            console.debug('getCardServerConfiguration configuration:', logConfig);
+            logger.debug('getCardServerConfiguration configuration:', logConfig);
         }
         return {config};
     } else {
