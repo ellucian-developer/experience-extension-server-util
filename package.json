@@ -1,6 +1,6 @@
 {
     "name": "@ellucian/experience-extension-server-util",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Experience helpers for server side",
     "license": "Apache-2.0",
     "type": "module",
