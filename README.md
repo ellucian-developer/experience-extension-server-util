@@ -239,3 +239,5 @@ handler.use(httpHeaderNormalizer())
 handler.use(httpErrorHandler())
 handler.use(lambdaUtil.jwtAuthorizeMiddy({ options: { secret: process.env.JWT_SECRET } }))
 ```
+
+Copyright 2021–2022 Ellucian Company L.P. and its affiliates.
