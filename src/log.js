@@ -12,7 +12,7 @@ export function initializeLogging(name) {
     let levelName = Object.keys(logger.levels).find(key => logger.levels[key] === level);
 
     // set logger's level
-    logger.setLevel(process.env.LOG_LEVEL || process.env.NODE_ENV === 'development' ? 'debug' : 'warn');
+    logger.setLevel(process.env.LOG_LEVEL || (process.env.NODE_ENV === 'development' ? 'debug' : 'warn'));
     level = logger.getLevel();
     levelName = Object.keys(logger.levels).find(key => logger.levels[key] === level);
 

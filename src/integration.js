@@ -12,6 +12,7 @@ const baseOptions = {
         'Cache-Control': 'no-cache'
     }
 };
+const stringifiedBaseOptions = JSON.stringify(baseOptions);
 
 function integrationUrl(options={}) {
     return options.ethosIntegrationUrl || process.env.ETHOS_INTEGRATION_URL;
@@ -36,8 +37,14 @@ function buildUrl({base = 'api', id, options, resource}) {
     return url
 }
 
-function createNewOptions() {
-    return Object.assign({}, baseOptions);
+function createNewRequestOptions({headers}={}) {
+    const requestOptions = JSON.parse(stringifiedBaseOptions)
+
+    if (headers) {
+        Object.assign(requestOptions.headers, headers);
+    }
+
+    return requestOptions;
 }
 
 function addAuthorization(token, options) {
@@ -64,7 +71,7 @@ export async function getToken({apiKey, context={}, options, token}) {
         throw new Error('getToken missing apiKey');
     }
 
-    const requestOptions = createNewOptions();
+    const requestOptions = createNewRequestOptions();
     addAuthorization(apiKey, requestOptions);
 
     const url = buildUrl({base: 'auth', options});
@@ -99,7 +106,7 @@ export async function get({apiKey, base = 'api', context = {}, id, resource, sea
     }
 
     if (tokenToUse) {
-        const requestOptions = createNewOptions();
+        const requestOptions = createNewRequestOptions({headers: options?.headers});
         addAuthorization(tokenToUse, requestOptions);
         requestOptions.searchParams = searchParams;
 
@@ -134,7 +141,7 @@ export async function graphql({apiKey, context = {}, options, query, token, vari
     const { token: tokenToUse } = await getToken({apiKey, context, options, token});
 
     if (tokenToUse) {
-        const requestOptions = createNewOptions();
+        const requestOptions = createNewRequestOptions({headers: options?.headers});
         addAuthorization(tokenToUse, requestOptions);
         requestOptions.json = {
             query,
@@ -154,8 +161,55 @@ export async function graphql({apiKey, context = {}, options, query, token, vari
     }
 }
 
+export async function post({apiKey, base = 'api', context = {}, data, id, resource, searchParams = {}, token, options}) {
+    if (!resource) {
+        throw  new Error('post: missing resource name');
+    }
+
+    const { token: tokenToUse } = await getToken({apiKey, context, options, token});
+
+    // if there is a searchParams.criteria that is not stringified, stringify it now
+    if (searchParams.criteria && typeof searchParams.criteria !== 'string' ) {
+        searchParams.criteria = JSON.stringify(searchParams.criteria);
+    }
+
+    if (tokenToUse) {
+        const headers = Object.assign({}, options?.headers, { 'Content-Type': 'application/json'})
+        const requestOptions = createNewRequestOptions({headers});
+        addAuthorization(tokenToUse, requestOptions);
+        requestOptions.searchParams = searchParams;
+        requestOptions.json = data;
+
+        const url = buildUrl({base, id, options, resource});
+        context.ethosPostCount = context.ethosPostCount ? context.ethosPostCount + 1 : 1;
+        try {
+            logger.debug('url', url);
+            logger.debug('requestOptions', requestOptions);
+            const response = await got.post(url, requestOptions);
+            if (response.statusCode === StatusCodes.OK) {
+                return {
+                    context,
+                    data: JSON.parse(response.body)
+                }
+            }
+
+            logger.error(`Integration post failed. response status: ${response.statusCode}`);
+            throw new Error(`Integration post failed. response status: ${response.statusCode}`);
+        } catch (error) {
+            logger.error('ethos post failed:', error);
+            return {
+                context,
+                error
+            }
+        }
+    } else {
+        throw new Error('post failed to get a token');
+    }
+}
+
 export default {
     getToken,
     get,
-    graphql
+    graphql,
+    post
 };
