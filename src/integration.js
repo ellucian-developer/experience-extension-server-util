@@ -186,7 +186,7 @@ export async function post({apiKey, base = 'api', context = {}, data, id, resour
             logger.debug('url', url);
             logger.debug('requestOptions', requestOptions);
             const response = await got.post(url, requestOptions);
-            if (response.statusCode === StatusCodes.OK) {
+            if (response.statusCode === StatusCodes.OK || response.statusCode === StatusCodes.CREATED) {
                 return {
                     context,
                     data: JSON.parse(response.body)
