@@ -10,6 +10,18 @@ For some examples of server microservices which use these utilities, see the Exp
 $ npm install git+https://git.ellucian.com/scm/rang/experience-extension-server-util.git
 ```
 
+## Prerequisites
+
+### Environment Variables
+
+You must have the following environment variable in place and available when you invoke any of the utilities provided in this project. See below for an example with the `dotenv` JavaScript utility.
+
+```
+# .env
+ETHOS_INTEGRATION_URL="https://integrate.elluciancloud.com"
+```
+
+
 ## Experience Util
 
 ### getCardServerConfiguration({ jwt?, token, url? })
