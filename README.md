@@ -4,6 +4,17 @@ This repository is a collection of utility functions useful to creating an Elluc
 
 For some examples of server microservices which use these utilities, see the Experience Ethos Examples that contains a Lambda and a Node microservice examples.
 
+## Prerequisites
+
+### Environment Variables
+
+You must have the following environment variable in place and available when you invoke any of the utilities provided in this project. See below for an example with the `dotenv` JavaScript utility.
+
+```
+# .env
+ETHOS_INTEGRATION_URL="https://integrate.elluciancloud.com"
+```
+
 ## Install
 
 ```
