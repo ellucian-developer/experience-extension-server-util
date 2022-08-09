@@ -7,7 +7,7 @@ For some examples of server microservices which use these utilities, see the Exp
 ## Install
 
 ```
-$ npm install git+https://git.ellucian.com/scm/rang/experience-extension-server-util.git
+$ npm install git+https://github.com/ellucian-developer/experience-extension-server-util.git
 ```
 
 ## Experience Util
