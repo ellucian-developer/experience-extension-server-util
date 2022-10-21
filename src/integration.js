@@ -177,14 +177,16 @@ export async function post({apiKey, base = 'api', context = {}, data, id, resour
         const headers = Object.assign({}, options?.headers, { 'Content-Type': 'application/json'})
         const requestOptions = createNewRequestOptions({headers});
         addAuthorization(tokenToUse, requestOptions);
-        requestOptions.searchParams = searchParams;
+        if (Object.keys(searchParams).length > 0) {
+            requestOptions.searchParams = searchParams;
+        }
         requestOptions.json = data;
 
         const url = buildUrl({base, id, options, resource});
         context.ethosPostCount = context.ethosPostCount ? context.ethosPostCount + 1 : 1;
         try {
             logger.debug('url', url);
-            logger.debug('requestOptions', requestOptions);
+            logger.debug('requestOptions', JSON.stringify(requestOptions, null, 2));
             const response = await got.post(url, requestOptions);
             if (response.statusCode === StatusCodes.OK || response.statusCode === StatusCodes.CREATED) {
                 return {

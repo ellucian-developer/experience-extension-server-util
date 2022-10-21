@@ -1,12 +1,11 @@
 {
     "name": "@ellucian/experience-extension-server-util",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Experience helpers for server side",
     "license": "Apache-2.0",
     "type": "module",
-    "main": "index",
+    "main": "src/index.js",
     "files": [
-        "index.js",
         "src"
     ],
     "scripts": {},
