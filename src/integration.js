@@ -38,10 +38,11 @@ function buildUrl({base = 'api', id, options, resource}) {
 }
 
 function createNewRequestOptions({headers}={}) {
-    const requestOptions = JSON.parse(stringifiedBaseOptions)
+    let requestOptions = JSON.parse(stringifiedBaseOptions)
 
     if (headers) {
-        Object.assign(requestOptions.headers, headers);
+        // assign incoming headers first
+        requestOptions = Object.assign({}, headers, requestOptions.headers);
     }
 
     return requestOptions;
@@ -209,9 +210,60 @@ export async function post({apiKey, base = 'api', context = {}, data, id, resour
     }
 }
 
+export async function put({apiKey, base = 'api', context = {}, data, id, resource, searchParams = {}, token, options}) {
+    if (!resource) {
+        throw  new Error('put: missing resource name');
+    }
+
+    const { token: tokenToUse } = await getToken({apiKey, context, options, token});
+
+    // if there is a searchParams.criteria that is not stringified, stringify it now
+    if (searchParams.criteria && typeof searchParams.criteria !== 'string' ) {
+        searchParams.criteria = JSON.stringify(searchParams.criteria);
+    }
+
+    if (tokenToUse) {
+        logger.debug ("put options", options);
+        const headers = Object.assign({}, { 'Content-Type': 'application/json'}, options?.headers, )
+        logger.debug ("put headers", headers);
+        const requestOptions = createNewRequestOptions({headers});
+        addAuthorization(tokenToUse, requestOptions);
+        if (Object.keys(searchParams).length > 0) {
+            requestOptions.searchParams = searchParams;
+        }
+        requestOptions.json = data;
+
+        const url = buildUrl({base, id, options, resource});
+        context.ethosPutCount = context.ethosPutCount ? context.ethosPutCount + 1 : 1;
+        try {
+            logger.debug('url', url);
+            logger.debug('requestOptions', JSON.stringify(requestOptions, null, 2));
+            const response = await got.put(url, requestOptions);
+            if (response.statusCode === StatusCodes.OK || response.statusCode === StatusCodes.CREATED) {
+                return {
+                    context,
+                    data: JSON.parse(response.body)
+                }
+            }
+
+            logger.error(`Integration put failed. response status: ${response.statusCode}`);
+            throw new Error(`Integration put failed. response status: ${response.statusCode}`);
+        } catch (error) {
+            logger.error('ethos put failed:', error);
+            return {
+                context,
+                error
+            }
+        }
+    } else {
+        throw new Error('put failed to get a token');
+    }
+}
+
 export default {
     getToken,
     get,
     graphql,
-    post
+    post,
+    put
 };
