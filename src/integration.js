@@ -38,13 +38,14 @@ function buildUrl({base = 'api', id, options, resource}) {
 }
 
 function createNewRequestOptions({headers}={}) {
-    let requestOptions = JSON.parse(stringifiedBaseOptions)
-
+    const requestOptions = JSON.parse(stringifiedBaseOptions);
+    logger.debug("createNewRequestOptions initiaze requestOptions:", requestOptions);
     if (headers) {
         // assign incoming headers first
-        requestOptions = Object.assign({}, headers, requestOptions.headers);
+        Object.assign( requestOptions.headers, headers);
+        logger.debug("createNewRequestOptions after add custom header values requestOptions:", requestOptions);
     }
-
+    logger.debug("createNewRequestOptions before return requestOptions:", requestOptions);
     return requestOptions;
 }
 
@@ -108,6 +109,7 @@ export async function get({apiKey, base = 'api', context = {}, id, resource, sea
 
     if (tokenToUse) {
         const requestOptions = createNewRequestOptions({headers: options?.headers});
+        logger.debug("get function requestOptions:", requestOptions);
         addAuthorization(tokenToUse, requestOptions);
         requestOptions.searchParams = searchParams;
 
@@ -128,9 +130,15 @@ export async function get({apiKey, base = 'api', context = {}, id, resource, sea
             throw new Error(`Integration get failed. response status: ${response.statusCode}`);
         } catch (error) {
             logger.error('ethos get failed:', error);
+            let errorResponseBody = {};
+            if (error.response) {
+                logger.error('!!! ethos get error response body:', error.response.body);
+                errorResponseBody = error.response.body;
+            }
             return {
                 context,
-                error
+                error,
+                errorMsg: errorResponseBody
             }
         }
     } else {
@@ -175,8 +183,13 @@ export async function post({apiKey, base = 'api', context = {}, data, id, resour
     }
 
     if (tokenToUse) {
-        const headers = Object.assign({}, options?.headers, { 'Content-Type': 'application/json'})
+        // const headers = Object.assign({}, options?.headers, { 'Content-Type': 'application/json'})
+        // const requestOptions = createNewRequestOptions({headers});
+        logger.debug ("post options", options);
+        const headers = Object.assign({}, { 'Content-Type': 'application/json'}, options?.headers, )
+        logger.debug ("post headers", headers);
         const requestOptions = createNewRequestOptions({headers});
+        logger.debug ("post requestOptions", requestOptions);
         addAuthorization(tokenToUse, requestOptions);
         if (Object.keys(searchParams).length > 0) {
             requestOptions.searchParams = searchParams;
@@ -187,8 +200,8 @@ export async function post({apiKey, base = 'api', context = {}, data, id, resour
         context.ethosPostCount = context.ethosPostCount ? context.ethosPostCount + 1 : 1;
         try {
             logger.debug('url', url);
-            logger.debug('requestOptions', JSON.stringify(requestOptions, null, 2));
-            const response = await got.post(url, requestOptions);
+            logger.debug('before got.post requestOptions', JSON.stringify(requestOptions, null, 2));
+            const response = await got.post(url, requestOptions,);
             if (response.statusCode === StatusCodes.OK || response.statusCode === StatusCodes.CREATED) {
                 return {
                     context,
@@ -200,9 +213,15 @@ export async function post({apiKey, base = 'api', context = {}, data, id, resour
             throw new Error(`Integration post failed. response status: ${response.statusCode}`);
         } catch (error) {
             logger.error('ethos post failed:', error);
+            let errorResponseBody = {};
+            if (error.response) {
+                logger.error('!!! ethos post error response body:', error.response.body);
+                errorResponseBody = error.response.body;
+            }
             return {
                 context,
-                error
+                error,
+                errorMsg: errorResponseBody
             }
         }
     } else {
@@ -250,9 +269,15 @@ export async function put({apiKey, base = 'api', context = {}, data, id, resourc
             throw new Error(`Integration put failed. response status: ${response.statusCode}`);
         } catch (error) {
             logger.error('ethos put failed:', error);
+            let errorResponseBody = {};
+            if (error.response) {
+                logger.error('!!! ethos put error response body:', error.response.body);
+                errorResponseBody = error.response.body;
+            }
             return {
                 context,
-                error
+                error,
+                errorMsg: errorResponseBody
             }
         }
     } else {
